@@ -1,20 +1,21 @@
 import questionary
-from main_functions import create_predefined_habits, habit_info, create_habit, habit_created_info
+import functions as func
 from validator import user_name_validator, habit_name_validator, habit_description_validator, date_validator
-from hclasses import Habit, Daily, Weekly
-from hanalytics import list_habits, list_active
+from hclasses import Habit
+from hanalytics import list_habits, list_active, list_streak, list_longest_streak
 
 is_running = True
-ask_main = True
+ask_main_question = True
 main_question = ""
 habit_dictionary = Habit.instances
 
 # start
-# create_predefined_habits()
+# func.create_predefined_habits()
 Habit.load()
 
+# move to module interface
 while is_running:
-    if ask_main:
+    if ask_main_question:
         main_question = questionary.select(
             "What do you want to do?",
             choices=["Manage habits",
@@ -48,11 +49,11 @@ while is_running:
                 validate=habit_description_validator).ask()
 
             # create habit and print message
-            create_habit(create_habit_period, create_habit_name, create_habit_description)
-            print(habit_created_info(create_habit_period, create_habit_name, create_habit_description))
+            func.create_habit(create_habit_period, create_habit_name, create_habit_description)
+            print(func.habit_created_info(create_habit_period, create_habit_name, create_habit_description))
 
             # return to "Manage habits" menu
-            ask_main = False
+            ask_main_question = False
             main_question = "Manage habits"
 
         # Work in progress: return
@@ -84,7 +85,7 @@ while is_running:
                 habit_dictionary[edit_habit].save()
 
             # return to "Manage habits" menu
-            ask_main = False
+            ask_main_question = False
             main_question = "Manage habits"
 
         # Work in progress: return
@@ -102,7 +103,7 @@ while is_running:
                 habit_dictionary[del_habit].delete()
             elif confirm_deletion == "No":
                 # return to manage habits, ideally should return to delete
-                ask_main = False
+                ask_main_question = False
                 main_question = "Manage habits"
 
         # Work in progress: return
@@ -125,17 +126,17 @@ while is_running:
                 ).ask()
 
             # print habit
-            print(habit_info(habit_dictionary[list_choice]))
+            print(func.habit_info(habit_dictionary[list_choice]))
 
             # return to "Manage habits" menu
-            ask_main = False
+            ask_main_question = False
             main_question = "Manage habits"
 
         # DONE
         elif manage_habit_question == "Back":
-            ask_main = True
+            ask_main_question = True
 
-    # Work in progress: return
+    # Work in progress: return, maybe add "check all"
     elif main_question == "Check-off habits":
         check_menu = questionary.select(
             "What would you like to do?",
@@ -154,7 +155,7 @@ while is_running:
             habit_dictionary[check_habit].save()
 
             # return to "Check-off habits" menu
-            ask_main = False
+            ask_main_question = False
             main_question = "Check-off habits"
 
         # Work in progress: return
@@ -170,14 +171,14 @@ while is_running:
             habit_dictionary[check_habit].save()
 
             # return to "Check-off habits" menu
-            ask_main = False
+            ask_main_question = False
             main_question = "Check-off habits"
 
         # DONE
         elif check_menu == "Back":
-            ask_main = True
+            ask_main_question = True
 
-    # Work in progress: Analyze streak, analyze longest_streak
+    # DONE
     elif main_question == "Analyze habits":
         analyze_habit_question = questionary.select(
             "Analyze your habits",
@@ -188,33 +189,81 @@ while is_running:
                      "Back"
                      ]).ask()
 
-        # Improve string return
+        # DONE
         if analyze_habit_question == "Show active habits":
-            print(list_active(habit_dictionary))
+            print(f"These are your active habits: " +
+                  f"{func.habit_list_as_string(list_active(habit_dictionary))}")
 
             # return to "Analyze habits" menu
-            ask_main = False
+            ask_main_question = False
             main_question = "Analyze habits"
 
-        # Improve string return
+        # DONE
         if analyze_habit_question == "Show inactive habits":
-            print(list_active(habit_dictionary, active=False))
+            print(f"These are your active habits: " +
+                  f"{func.habit_list_as_string(list_active(habit_dictionary, active=False))}")
 
             # return to "Analyze habits" menu
-            ask_main = False
+            ask_main_question = False
             main_question = "Analyze habits"
 
-        # All vs single
+        # DONE
         if analyze_habit_question == "Show current streak":
-            print("Showing current streak!")
+            analyze_streak_question = questionary.select(
+                "Do you want to analyze a single habit or all habits?",
+                choices=["Single",
+                         "All"]).ask()
 
-        # All vs single
+            if analyze_streak_question == "Single":
+                single_longest_question = questionary.select(
+                    "For which habit do you want to analyze the streak?",
+                    choices=list_habits(habit_dictionary)).ask()
+
+                print(f"Your current streak for the habit {single_longest_question} is: " +
+                      str(habit_dictionary[single_longest_question].streak()))
+
+                # return to "Analyze habits" menu
+                ask_main_question = False
+                main_question = "Analyze habits"
+
+            elif analyze_streak_question == "All":
+                print("Here are the current streaks for all your habits:\n" +
+                      func.habit_streak_string(list_streak(habit_dictionary)))
+
+                # return to "Analyze habits" menu
+                ask_main_question = False
+                main_question = "Analyze habits"
+
+        # DONE
         elif analyze_habit_question == "Show longest streak":
-            print("Showing longest streak!")
+            analyze_longest_question = questionary.select(
+                "Do you want to analyze a single habit or all habits?",
+                choices=["Single",
+                         "All"]).ask()
+
+            if analyze_longest_question == "Single":
+                single_longest_question = questionary.select(
+                    "For which habit do you want to analyze the longest streak?",
+                    choices=list_habits(habit_dictionary)).ask()
+
+                print(f"Your longest streak for the habit {single_longest_question} is: " +
+                      str(habit_dictionary[single_longest_question].longest_streak()))
+
+                # return to "Analyze habits" menu
+                ask_main_question = False
+                main_question = "Analyze habits"
+
+            elif analyze_longest_question == "All":
+                print("Here are the current streaks for all your habits:\n" +
+                      func.habit_streak_string(list_longest_streak(habit_dictionary)))
+
+                # return to "Analyze habits" menu
+                ask_main_question = False
+                main_question = "Analyze habits"
 
         # DONE
         elif analyze_habit_question == "Back":
-            ask_main = True
+            ask_main_question = True
 
     elif main_question == "Exit":
         is_running = False

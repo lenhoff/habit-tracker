@@ -45,3 +45,14 @@ def habit_info(habit):
 
     return info
 
+
+def habit_list_as_string(habit_list):
+    separator = ", "
+    return separator.join(habit_list)
+
+
+def habit_streak_string(streak_dict):
+    combined_list = [("Habit: " + habit + " - ") +
+                     ("Streak: " + str(streak)) for habit, streak in zip(streak_dict.keys(), streak_dict.values())]
+    separator = "\n"
+    return separator.join(combined_list)
