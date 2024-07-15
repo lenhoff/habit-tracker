@@ -1,4 +1,5 @@
 import sqlite3
+import constants as const
 from datetime import datetime, timedelta
 from week_tuple_class import Week_tuple
 
@@ -7,7 +8,7 @@ class Habit:
 
     instances = {}
 
-    _DB_NAME = "test.db"     # this will be created for every user
+    _DB_NAME = const.database
 
     def __init__(self, name, description):
         self.name = name
@@ -145,6 +146,11 @@ class Habit:
 
                 for date in dates:
                     habit.dates_checked.append(datetime.strptime(date["date_checked"], "%Y-%m-%d").date())
+
+    # DONE
+    @classmethod
+    def change_database(cls, username):
+        cls._DB_NAME = str(username) + ".db"
 
     def __str__(self):
         return (f"Habit ID: {self.id}\n" +

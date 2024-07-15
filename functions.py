@@ -1,5 +1,10 @@
+import pathlib
 from hclasses import Habit, Daily, Weekly
-from datetime import datetime
+
+
+def username_exists(username):
+    database = str(username) + ".db"
+    return pathlib.Path(database).is_file()
 
 
 def create_predefined_habits():

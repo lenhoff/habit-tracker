@@ -3,17 +3,19 @@ from hclasses import Habit
 from datetime import datetime
 
 
-# example = ["a", "aa"]  # will be replaced with Habit.instances
-
-
 def user_name_validator(name):
-    pass
+    if len(name) == 0:
+        return "Username must be at least one character long."
+    elif len(name) > 20:
+        return "Username cannot exceed 20 characters."
+    else:
+        return True
 
 
-def habit_name_validator(string):
-    if len(string) == 0:
+def habit_name_validator(habit_name):
+    if len(habit_name) == 0:
         return "Habit name must be at least one character long."
-    elif string in list_habits(Habit.instances):
+    elif habit_name in list_habits(Habit.instances):
         return "Habit name already taken."
     else:
         return True
