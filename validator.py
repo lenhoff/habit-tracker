@@ -3,6 +3,7 @@ from hclasses import Habit
 from datetime import datetime
 
 
+# TO DO: constraints on characters
 def user_name_validator(name):
     if len(name) == 0:
         return "Username must be at least one character long."

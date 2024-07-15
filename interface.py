@@ -217,7 +217,7 @@ def main_menu():
 
             # DONE
             if analyze_habit_question == "Show inactive habits":
-                print(f"These are your active habits: " +
+                print(f"These are your inactive habits: " +
                       f"{func.habit_list_as_string(list_active(const.habit_dictionary, active=False))}")
 
                 # return to "Analyze habits" menu

@@ -8,7 +8,7 @@ class Habit:
 
     instances = {}
 
-    _DB_NAME = const.database
+    _DB_NAME = "test.db"
 
     def __init__(self, name, description):
         self.name = name
@@ -230,7 +230,7 @@ class Weekly(Habit):
 
     # DONE
     @staticmethod
-    def __previous_week(date: tuple):
+    def __previous_week(date: Week_tuple):
         monday = datetime.fromisocalendar(date.year, date.week, 1)
 
         previous_monday = (monday - timedelta(weeks=1)).isocalendar()
