@@ -1,15 +1,16 @@
+from abc import ABC, abstractmethod
 import sqlite3
-import constants as const
 from datetime import datetime, timedelta
 from week_tuple_class import Week_tuple
 
 
-class Habit:
+class Habit(ABC):
 
     instances = {}
 
-    _DB_NAME = "test.db"
+    _DB_NAME = "_test.db"
 
+    @abstractmethod
     def __init__(self, name, description):
         self.name = name
         self.description = description
@@ -51,28 +52,28 @@ class Habit:
     # DONE
     def update_name(self, new_name):
         old_name = self.name
-        self.name = new_name
+        self.name = str(new_name)
 
         Habit.instances.pop(old_name)
         Habit.instances.update({self.name: self})
 
     # DONE
     def update_description(self, new_description):
-        self.description = new_description
+        self.description = str(new_description)
 
-    # abstract
+    @abstractmethod
     def is_active(self):
         pass
 
-    # abstract
+    @abstractmethod
     def streak(self):
         pass
 
-    # abstract
+    @abstractmethod
     def longest_streak(self):
         pass
 
-    # abstract
+    @abstractmethod
     def check_streak(self):
         pass
 
@@ -98,8 +99,8 @@ class Habit:
             # save habit meta data
             if self.id:
                 cursor.execute("""
-                    UPDATE habit SET name=?, description=?, period=?, date_created=? WHERE id=?
-                    """, (self.name, self.description, self.period, self.date_created, self.id))
+                    UPDATE habit SET name=?, description=? WHERE id=?
+                    """, (self.name, self.description, self.id))
             else:
                 cursor.execute("""
                     INSERT INTO habit (name, description, period, date_created) VALUES (?,?,?,?)
@@ -230,7 +231,7 @@ class Weekly(Habit):
 
     # DONE
     @staticmethod
-    def __previous_week(date: Week_tuple):
+    def _previous_week(date: Week_tuple):
         monday = datetime.fromisocalendar(date.year, date.week, 1)
 
         previous_monday = (monday - timedelta(weeks=1)).isocalendar()
@@ -238,7 +239,7 @@ class Weekly(Habit):
         return Week_tuple(previous_monday.year, previous_monday.week)
 
     # DONE
-    def __convert_week(self):
+    def _convert_week(self):
         iso_list = [date.isocalendar() for date in self.dates_checked]
 
         return [Week_tuple(iso.year, iso.week) for iso in iso_list]
@@ -248,7 +249,7 @@ class Weekly(Habit):
 
         active = False
         this_week = Week_tuple(datetime.today().isocalendar().year, datetime.today().isocalendar().week)
-        weeks_checked = self.__convert_week()
+        weeks_checked = self._convert_week()
 
         if len(weeks_checked) > 0:
             if this_week in weeks_checked:
@@ -259,26 +260,26 @@ class Weekly(Habit):
     # DONE, UPDATED
     def streak(self):
         current_streak = 0
-        weeks_checked = self.__convert_week()
+        weeks_checked = self._convert_week()
         this_week = Week_tuple(datetime.today().isocalendar().year, datetime.today().isocalendar().week)
 
         while this_week in weeks_checked:
             current_streak += 1
-            this_week = Weekly.__previous_week(this_week)
+            this_week = Weekly._previous_week(this_week)
 
         return current_streak
 
     # DONE, UPDATED
     def longest_streak(self):
         max_streak = 0
-        weeks_checked = self.__convert_week()
+        weeks_checked = self._convert_week()
         weeks_checked.sort(reverse=True)
 
         if len(weeks_checked) > 0:
             streak = 1
             max_streak = 1
             for date in range(len(weeks_checked) - 1):
-                if Weekly.__previous_week(weeks_checked[date]) == weeks_checked[date + 1]:
+                if Weekly._previous_week(weeks_checked[date]) == weeks_checked[date + 1]:
                     streak += 1
                     if streak > max_streak:
                         max_streak = streak
@@ -296,7 +297,7 @@ class Weekly(Habit):
             new_day = datetime.strptime(date, "%Y-%m-%d").date()
             new_week = Week_tuple(new_day.isocalendar().year, new_day.isocalendar().week)
 
-        weeks_checked = self.__convert_week()
+        weeks_checked = self._convert_week()
 
         if new_week not in weeks_checked:
             self.dates_checked.append(new_day)
