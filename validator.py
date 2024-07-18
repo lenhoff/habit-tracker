@@ -3,7 +3,7 @@ from hclasses import Habit
 from datetime import datetime
 
 
-def user_name_validator(name):
+def user_name_validator(name: str):
     if len(name) == 0:
         return "Username must be at least one character long."
     elif len(name) > 20:
@@ -16,7 +16,7 @@ def user_name_validator(name):
         return True
 
 
-def habit_name_validator(habit_name):
+def habit_name_validator(habit_name: str):
     if len(habit_name) == 0:
         return "Habit name must be at least one character long."
     elif habit_name in list_habits(Habit.Instances):
@@ -25,16 +25,16 @@ def habit_name_validator(habit_name):
         return True
 
 
-def habit_description_validator(description):
+def habit_description_validator(description: str):
     if len(description) == 0:
         return "Description must be at least one character long."
     if len(description) > 100:
-        return "Description must be 100 characters or shorter"
+        return "Description must be 100 characters or shorter."
     else:
         return True
 
 
-def date_validator(date_entered):
+def date_validator(date_entered: str):
     try:
         date = datetime.strptime(date_entered, "%Y-%m-%d").date()
     except ValueError:

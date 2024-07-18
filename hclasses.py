@@ -5,13 +5,46 @@ from week_tuple_class import Week_tuple
 
 
 class Habit(ABC):
+    """
+    Abstract base class to implement different habit classes. Covers the basic functionality (i.e., saving, loading and
+    deleting) of instances.
 
+    Class attributes:
+        Instances (dict): Dictionary, which contains all instances of all child classes. Keys: Habit.name, Values: Habit
+        _DB_NAME (str): Database to which class connects (for loading, saving, etc.)
+
+    Class methods:
+        load()
+        change_db()
+
+    Instance methods:
+        _initialize_db()
+        _initialize_date_created()
+        update_name()
+        update_description()
+        delete()
+        save()
+
+    Abstract methods:
+        __init__()
+        checkoff_streak()
+        is_active()
+        streak()
+        longest_streak()
+    """
     Instances = {}
 
     _DB_NAME = "_test.db"
 
     @classmethod
     def load(cls):
+        """
+        Class method to load all previously saved Habit instances.
+
+        Connects to Habit._DB_NAME and initializes instances using 'period', 'name', 'description' values from 'habit'
+        table. Then, restores id and date_created.
+        Lastly, loads tracking data based on instance id from 'tracking' table.
+        """
         with sqlite3.connect(cls._DB_NAME) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -30,19 +63,39 @@ class Habit(ABC):
 
             # load tracking data for each habit
             for habit in Habit.Instances.values():
-                cursor.execute("SELECT * FROM tracking WHERE habit_id=?", (habit.id, ))
+                cursor.execute("SELECT * FROM tracking WHERE habit_id=?", (habit.id,))
                 dates = cursor.fetchall()
 
                 for date in dates:
                     habit.dates_checked.append(datetime.strptime(date["date_checked"], "%Y-%m-%d").date())
 
-    # DONE
     @classmethod
-    def change_db(cls, username):
-        cls._DB_NAME = str(username) + ".db"
+    def change_db(cls, username: str):
+        """
+        Class method to change user database (Habit._DB_NAME).
+
+        Args:
+            username (str): Enter a username / database name
+
+        """
+        if not type(username) is str:
+            raise ValueError("username must be of type: str")
+
+        cls._DB_NAME = username + ".db"
 
     @abstractmethod
-    def __init__(self, name, description):
+    def __init__(self, name: str, description: str):
+        """
+        Abstract method to ensure implementation of __init__ in child classes.
+        Child classes inherit this constructor method.
+
+        Args:
+            name (str): Enter a habit name.
+            description (str): Enter a habit description.
+        """
+        if not type(name) is str or not type(description) is str:
+            raise ValueError("name and description must be of type: str")
+
         self.name = name
         self.description = description
         self.date_created = None
@@ -54,6 +107,9 @@ class Habit(ABC):
         self._initialize_date_created()
 
     def _initialize_db(self):
+        """
+        Connects to 'Habit._DB_NAME' and creates 'habit' and 'tracking' table if they do not exist already.
+        """
         with sqlite3.connect(self._DB_NAME) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -76,20 +132,46 @@ class Habit(ABC):
             conn.commit()
 
     def _initialize_date_created(self):
+        """
+        Changes 'Habit.date_created' to current date.
+        """
         if self.date_created is None:
             self.date_created = str(datetime.today().date())
 
-    def update_name(self, new_name):
+    def update_name(self, new_name: str):
+        """
+        Changes 'Habit.name' to specified string and updates key in 'Habit.Instances'.
+
+        Args:
+            new_name (str): The new name to be entered.
+        """
+        if not type(new_name) is str:
+            raise ValueError("new_name must be of type: str")
+
         old_name = self.name
-        self.name = str(new_name)
+        self.name = new_name
 
         Habit.Instances.pop(old_name)
         Habit.Instances.update({self.name: self})
 
-    def update_description(self, new_description):
-        self.description = str(new_description)
+    def update_description(self, new_description: str):
+        """
+        Changes to 'Habit.description' of instance to specified string.
+
+        Args:
+            new_description (str): New description to be entered.
+        """
+        if not type(new_description) is str:
+            raise ValueError("new_description must be of type: str")
+
+        self.description = new_description
 
     def delete(self):
+        """
+        Connects to 'Habit._DB_NAME' and removes the metadata and tracked dates of a Habit instance from tables
+        'habits' and 'tracking' (based on 'Habit.id').
+        Then, instance is removed 'Habit.Instances'.
+        """
         if self.id:
             with sqlite3.connect(Habit._DB_NAME) as conn:
                 cursor = conn.cursor()
@@ -102,6 +184,15 @@ class Habit(ABC):
         Habit.Instances.pop(self.name)
 
     def save(self):
+        """
+        Method to save instance data to user database.
+
+        Connects to 'Habit._DB_NAME' and saves metadata and tracked dates of a Habit instance.
+        If the Habit ('Habit.id') exists already, method will update name and description in 'habit' table.
+        Otherwise, a new entry will be created.
+
+        Dates associated with the Habit instance will be saved in 'tracking' table.
+        """
         with sqlite3.connect(Habit._DB_NAME) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -120,7 +211,7 @@ class Habit(ABC):
             # save checked dates
             cursor.execute("""
                 SELECT * FROM tracking WHERE habit_id = ?
-                """, (self.id, ))
+                """, (self.id,))
             existing_dates = {row["date_checked"] for row in cursor.fetchall()}
 
             for date in self.dates_checked:
@@ -143,28 +234,80 @@ class Habit(ABC):
 
     @abstractmethod
     def checkoff_streak(self):
+        """
+        Abstract method to ensure implementation of 'checkoff_streak()' in child classes.
+        """
         pass
 
     @abstractmethod
     def is_active(self):
+        """
+        Abstract method to ensure implementation of 'is_active()' in child classes.
+        """
         pass
 
     @abstractmethod
     def streak(self):
+        """
+        Abstract method to ensure implementation of 'streak()' in child classes.
+        """
         pass
 
     @abstractmethod
     def longest_streak(self):
+        """
+        Abstract method to ensure implementation of 'longest_streak()' in child classes.
+        """
         pass
 
 
 class Daily(Habit):
+    """
+    Class to create instances of daily habits.
 
-    def __init__(self, name, description):
+    Inherits from Habit class.
+
+    Instance attributes:
+        name (str): Habit name
+        description (str): Habit description
+        date_created (str): Date of creation (format: YYYY-MM-DD)
+        dates_checked (list): List containing all tracked dates (based on 'datetime' objects)
+        id (int): Unique identifier for database interaction
+        period (str) = "Daily": Shows periodicity of instance
+
+    Instance methods:
+        __init__()                      [partly inherited from Habit class]
+        _initialize_db()                [inherited from Habit class]
+        _initialize_date_created()      [inherited from Habit class]
+        update_name()                   [inherited from Habit class]
+        update_description()            [inherited from Habit class]
+        delete()                        [inherited from Habit class]
+        save()                          [inherited from Habit class]
+        checkoff_streak()
+        is_active()
+        streak()
+        longest_streak()
+    """
+    def __init__(self, name: str, description: str):
+        """
+        Creates instance of class Daily.
+
+        Constructor inherited from Habit class. Overwrites 'self.period' to "Daily".
+
+        Args:
+            name (str): Enter a habit name.
+            description (str): Enter a habit description.
+        """
         super().__init__(name, description)
         self.period = "Daily"
 
-    def is_active(self):
+    def is_active(self) -> bool:
+        """
+        Method to check completion/activity status of Daily instance. Is the current date in 'self.dates_checked'?
+
+        Returns:
+             bool
+        """
         today = datetime.today().date()
 
         if len(self.dates_checked) > 0:
@@ -175,7 +318,15 @@ class Daily(Habit):
         else:
             return False
 
-    def checkoff_streak(self, date="today"):
+    def checkoff_streak(self, date: str = "today"):
+        """
+        Method to mark habit as completed/to check-off habit.
+
+        Appends the specified date to 'self.dates_checked' (default: current date) if it does not already exist.
+
+        Args:
+            date (str): Date to enter (in format: YYYY-MM-DD)
+        """
         if date == "today":
             new_date = datetime.today().date()
         else:
@@ -184,7 +335,13 @@ class Daily(Habit):
         if new_date not in self.dates_checked:
             self.dates_checked.append(new_date)
 
-    def streak(self):
+    def streak(self) -> int:
+        """
+        Method to calculate length of current streak of instance.
+
+        Returns:
+            int
+        """
         current_streak = 0
         today = datetime.today().date()
 
@@ -194,16 +351,21 @@ class Daily(Habit):
 
         return current_streak
 
-    def longest_streak(self):
+    def longest_streak(self) -> int:
+        """
+        Method to calculate length of longest streak of instance.
 
+        Returns:
+            int
+        """
         max_streak = 0
         self.dates_checked.sort(reverse=True)
 
         if len(self.dates_checked) > 0:
             streak_count = 1
             max_streak = 1
-            for date in range(len(self.dates_checked)-1):
-                if (self.dates_checked[date] - self.dates_checked[date+1]).days == 1:
+            for date in range(len(self.dates_checked) - 1):
+                if (self.dates_checked[date] - self.dates_checked[date + 1]).days == 1:
                     streak_count += 1
                     if streak_count > max_streak:
                         max_streak = streak_count
@@ -214,12 +376,55 @@ class Daily(Habit):
 
 
 class Weekly(Habit):
+    """
+    Class to create instances of weekly habits.
 
-    def __init__(self, name, description):
+    Inherits from Habit class.
+
+    Instance attributes:
+        name (str): Habit name
+        description (str): Habit description
+        date_created (str): Date of creation (format: YYYY-MM-DD)
+        dates_checked (list): List containing all tracked dates (based on 'datetime' objects)
+        id (int): Unique identifier for database interaction
+        period (str) = "Weekly": Shows periodicity of instance
+
+    Instance methods:
+        __init__()                      [partly inherited from Habit class]
+        _initialize_db()                [inherited from Habit class]
+        _initialize_date_created()      [inherited from Habit class]
+        update_name()                   [inherited from Habit class]
+        update_description()            [inherited from Habit class]
+        delete()                        [inherited from Habit class]
+        save()                          [inherited from Habit class]
+        checkoff_streak()
+        is_active()
+        streak()
+        longest_streak()
+        _convert_week()
+        _previous_week()
+    """
+    def __init__(self, name: str, description: str):
+        """
+        Creates instance of class Daily.
+
+        Constructor inherited from Habit class. Overwrites 'self.period' to "Weekly".
+
+        Args:
+            name (str): Enter a habit name.
+            description (str): Enter a habit description.
+        """
         super().__init__(name, description)
         self.period = "Weekly"
 
-    def is_active(self):
+    def is_active(self) -> bool:
+        """
+        Method to check completion/activity status of Weekly instance. Is the week of the current date in
+        'self.dates_checked'?
+
+        Returns:
+             bool
+        """
         active = False
         this_week = Week_tuple(datetime.today().isocalendar().year, datetime.today().isocalendar().week)
         weeks_checked = self._convert_week()
@@ -230,7 +435,16 @@ class Weekly(Habit):
 
         return active
 
-    def checkoff_streak(self, date="today"):
+    def checkoff_streak(self, date: str = "today"):
+        """
+        Method to mark habit as completed/to check-off habit.
+
+        Appends the specified date to 'self.dates_checked' (default: current date) if it does not already contain a date
+        from the same week.
+
+        Args:
+            date (str): Date to enter (in format: YYYY-MM-DD)
+        """
         if date == "today":
             new_day = datetime.today().date()
             new_week = Week_tuple(new_day.isocalendar().year, new_day.isocalendar().week)
@@ -243,7 +457,13 @@ class Weekly(Habit):
         if new_week not in weeks_checked:
             self.dates_checked.append(new_day)
 
-    def streak(self):
+    def streak(self) -> int:
+        """
+        Method to calculate length of current streak of instance.
+
+        Returns:
+            int
+        """
         current_streak = 0
         weeks_checked = self._convert_week()
         this_week = Week_tuple(datetime.today().isocalendar().year, datetime.today().isocalendar().week)
@@ -254,7 +474,13 @@ class Weekly(Habit):
 
         return current_streak
 
-    def longest_streak(self):
+    def longest_streak(self) -> int:
+        """
+        Method to calculate length of longest streak of instance.
+
+        Returns:
+            int
+        """
         max_streak = 0
         weeks_checked = self._convert_week()
         weeks_checked.sort(reverse=True)
@@ -272,16 +498,30 @@ class Weekly(Habit):
 
         return max_streak
 
-    def _convert_week(self):
+    def _convert_week(self) -> list:
+        """
+        Method to convert all 'datetime' objects in 'self.dates_checked' into 'Week_tuple' objects.
+
+        Returns:
+            list of 'Week_tuple' objects
+        """
         iso_list = [date.isocalendar() for date in self.dates_checked]
 
         return [Week_tuple(iso.year, iso.week) for iso in iso_list]
 
     @staticmethod
-    def _previous_week(date: Week_tuple):
+    def _previous_week(date: Week_tuple) -> Week_tuple:
+        """
+        Method to create a 'Week_tuple' objects of the previous week of input.
+
+        Args:
+            date (Week_tuple): Week from which to previous week will be calculated.
+
+        Returns:
+            Week_tuple
+        """
         monday = datetime.fromisocalendar(date.year, date.week, 1)
 
         previous_monday = (monday - timedelta(weeks=1)).isocalendar()
 
         return Week_tuple(previous_monday.year, previous_monday.week)
-

@@ -76,7 +76,6 @@ def manage_habits_menu():
                  "Back"
                  ]).ask()
 
-    # work in progress: return
     if manage_menu_question == "Create habit":
         create_habit_period = questionary.select(
             "What type of habit do you want to create?",
@@ -96,7 +95,6 @@ def manage_habits_menu():
         # return to "Manage habits" menu
         return_manage_habit_menu()
 
-    # Work in progress: return
     elif manage_menu_question == "Edit habit":
         edit_habit = questionary.select(
             "Which habit would you like to edit?",
@@ -127,7 +125,6 @@ def manage_habits_menu():
         # return to "Manage habits" menu
         return_manage_habit_menu()
 
-    # Work in progress: return
     elif manage_menu_question == "Delete habit":
         del_habit = questionary.select(
             "Which habit would you like to delete?",
@@ -144,7 +141,6 @@ def manage_habits_menu():
             # return to manage habits, ideally should return to delete
             return_manage_habit_menu()
 
-    # Work in progress: return
     elif manage_menu_question == "Inspect habits":
         list_habit_question = questionary.select(
             "Choose habit type:",
@@ -169,7 +165,6 @@ def manage_habits_menu():
         # return to "Manage habits" menu
         return_manage_habit_menu()
 
-    # DONE
     elif manage_menu_question == "Back":
         return_main_menu()
 
@@ -185,7 +180,6 @@ def checkoff_habits_menu():
                  "Back"
                  ]).ask()
 
-    # Work in progress: return
     if checkoff_menu_question == "Check-off":
         check_habit = questionary.select(
             "Which habit would you like to check-off?",
@@ -197,7 +191,6 @@ def checkoff_habits_menu():
         # return to "Check-off habits" menu
         return_checkoff_menu()
 
-    # Work in progress: return
     elif checkoff_menu_question == "Manual check-off":
         check_habit = questionary.select(
             "Which habit would you like to check-off?",
@@ -212,7 +205,6 @@ def checkoff_habits_menu():
         # return to "Check-off habits" menu
         return_checkoff_menu()
 
-    # DONE
     elif checkoff_menu_question == "Back":
         return_main_menu()
 
@@ -251,12 +243,12 @@ def analyze_habits_menu():
                      "All"]).ask()
 
         if analyze_streak_question == "Single":
-            single_longest_question = questionary.select(
+            single_streak_question = questionary.select(
                 "For which habit do you want to analyze the streak?",
                 choices=func.list_habits(habit_dictionary)).ask()
 
-            print(f"Your current streak for the habit {single_longest_question} is: " +
-                  str(habit_dictionary[single_longest_question].streak()))
+            print(f"Your current streak for the habit {single_streak_question} is: " +
+                  str(habit_dictionary[single_streak_question].streak()))
 
         elif analyze_streak_question == "All":
             print("Here are the current streaks for all your habits:\n" +
