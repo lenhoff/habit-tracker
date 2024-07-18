@@ -6,9 +6,40 @@ from week_tuple_class import Week_tuple
 
 class Habit(ABC):
 
-    instances = {}
+    Instances = {}
 
     _DB_NAME = "_test.db"
+
+    @classmethod
+    def load(cls):
+        with sqlite3.connect(cls._DB_NAME) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT * FROM habit")
+            existing_habits = cursor.fetchall()
+
+            # initialize all habits
+            for habit in existing_habits:
+                if habit["period"] == "Daily":
+                    Daily(habit["name"], habit["description"])
+                elif habit["period"] == "Weekly":
+                    Weekly(habit["name"], habit["description"])
+                Habit.Instances[habit["name"]].id = habit["id"]
+                Habit.Instances[habit["name"]].date_created = habit["date_created"]
+
+            # load tracking data for each habit
+            for habit in Habit.Instances.values():
+                cursor.execute("SELECT * FROM tracking WHERE habit_id=?", (habit.id, ))
+                dates = cursor.fetchall()
+
+                for date in dates:
+                    habit.dates_checked.append(datetime.strptime(date["date_checked"], "%Y-%m-%d").date())
+
+    # DONE
+    @classmethod
+    def change_db(cls, username):
+        cls._DB_NAME = str(username) + ".db"
 
     @abstractmethod
     def __init__(self, name, description):
@@ -18,12 +49,11 @@ class Habit(ABC):
         self.dates_checked = []
         self.id = None
         self.period = "None"
-        Habit.instances.update({self.name: self})
-        self.initialize_db()
-        self.initialize_date_created()
+        Habit.Instances.update({self.name: self})
+        self._initialize_db()
+        self._initialize_date_created()
 
-    # DONE
-    def initialize_db(self):
+    def _initialize_db(self):
         with sqlite3.connect(self._DB_NAME) as conn:
             cursor = conn.cursor()
             cursor.execute("""
@@ -45,39 +75,20 @@ class Habit(ABC):
             """)
             conn.commit()
 
-    def initialize_date_created(self):
+    def _initialize_date_created(self):
         if self.date_created is None:
             self.date_created = str(datetime.today().date())
 
-    # DONE
     def update_name(self, new_name):
         old_name = self.name
         self.name = str(new_name)
 
-        Habit.instances.pop(old_name)
-        Habit.instances.update({self.name: self})
+        Habit.Instances.pop(old_name)
+        Habit.Instances.update({self.name: self})
 
-    # DONE
     def update_description(self, new_description):
         self.description = str(new_description)
 
-    @abstractmethod
-    def is_active(self):
-        pass
-
-    @abstractmethod
-    def streak(self):
-        pass
-
-    @abstractmethod
-    def longest_streak(self):
-        pass
-
-    @abstractmethod
-    def check_streak(self):
-        pass
-
-    # DONE
     def delete(self):
         if self.id:
             with sqlite3.connect(Habit._DB_NAME) as conn:
@@ -88,9 +99,8 @@ class Habit(ABC):
 
                 conn.commit()
 
-        Habit.instances.pop(self.name)
+        Habit.Instances.pop(self.name)
 
-    # DONE, UPDATED
     def save(self):
         with sqlite3.connect(Habit._DB_NAME) as conn:
             conn.row_factory = sqlite3.Row
@@ -121,38 +131,6 @@ class Habit(ABC):
 
         conn.commit()
 
-    # DONE
-    @classmethod
-    def load(cls):
-        with sqlite3.connect(cls._DB_NAME) as conn:
-            conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
-
-            cursor.execute("SELECT * FROM habit")
-            existing_habits = cursor.fetchall()
-
-            # initialize all habits
-            for habit in existing_habits:
-                if habit["period"] == "Daily":
-                    Daily(habit["name"], habit["description"])
-                elif habit["period"] == "Weekly":
-                    Weekly(habit["name"], habit["description"])
-                Habit.instances[habit["name"]].id = habit["id"]
-                Habit.instances[habit["name"]].date_created = habit["date_created"]
-
-            # load tracking data for each habit
-            for habit in Habit.instances.values():
-                cursor.execute("SELECT * FROM tracking WHERE habit_id=?", (habit.id, ))
-                dates = cursor.fetchall()
-
-                for date in dates:
-                    habit.dates_checked.append(datetime.strptime(date["date_checked"], "%Y-%m-%d").date())
-
-    # DONE
-    @classmethod
-    def change_database(cls, username):
-        cls._DB_NAME = str(username) + ".db"
-
     def __str__(self):
         return (f"Habit ID: {self.id}\n" +
                 f"Habit name: {self.name}\n" +
@@ -163,6 +141,22 @@ class Habit(ABC):
                 f"Current streak: {self.streak()}\n" +
                 f"Longest streak: {self.longest_streak()}\n")
 
+    @abstractmethod
+    def checkoff_streak(self):
+        pass
+
+    @abstractmethod
+    def is_active(self):
+        pass
+
+    @abstractmethod
+    def streak(self):
+        pass
+
+    @abstractmethod
+    def longest_streak(self):
+        pass
+
 
 class Daily(Habit):
 
@@ -170,7 +164,6 @@ class Daily(Habit):
         super().__init__(name, description)
         self.period = "Daily"
 
-    # DONE, UPDATED
     def is_active(self):
         today = datetime.today().date()
 
@@ -182,7 +175,15 @@ class Daily(Habit):
         else:
             return False
 
-    # DONE, UPDATED
+    def checkoff_streak(self, date="today"):
+        if date == "today":
+            new_date = datetime.today().date()
+        else:
+            new_date = datetime.strptime(date, "%Y-%m-%d").date()
+
+        if new_date not in self.dates_checked:
+            self.dates_checked.append(new_date)
+
     def streak(self):
         current_streak = 0
         today = datetime.today().date()
@@ -193,7 +194,6 @@ class Daily(Habit):
 
         return current_streak
 
-    # DONE
     def longest_streak(self):
 
         max_streak = 0
@@ -212,16 +212,6 @@ class Daily(Habit):
 
         return max_streak
 
-    # DONE, UPDATED
-    def check_streak(self, date="today"):
-        if date == "today":
-            new_date = datetime.today().date()
-        else:
-            new_date = datetime.strptime(date, "%Y-%m-%d").date()
-
-        if new_date not in self.dates_checked:
-            self.dates_checked.append(new_date)
-
 
 class Weekly(Habit):
 
@@ -229,24 +219,7 @@ class Weekly(Habit):
         super().__init__(name, description)
         self.period = "Weekly"
 
-    # DONE
-    @staticmethod
-    def _previous_week(date: Week_tuple):
-        monday = datetime.fromisocalendar(date.year, date.week, 1)
-
-        previous_monday = (monday - timedelta(weeks=1)).isocalendar()
-
-        return Week_tuple(previous_monday.year, previous_monday.week)
-
-    # DONE
-    def _convert_week(self):
-        iso_list = [date.isocalendar() for date in self.dates_checked]
-
-        return [Week_tuple(iso.year, iso.week) for iso in iso_list]
-
-    # DONE
     def is_active(self):
-
         active = False
         this_week = Week_tuple(datetime.today().isocalendar().year, datetime.today().isocalendar().week)
         weeks_checked = self._convert_week()
@@ -257,7 +230,19 @@ class Weekly(Habit):
 
         return active
 
-    # DONE, UPDATED
+    def checkoff_streak(self, date="today"):
+        if date == "today":
+            new_day = datetime.today().date()
+            new_week = Week_tuple(new_day.isocalendar().year, new_day.isocalendar().week)
+        else:
+            new_day = datetime.strptime(date, "%Y-%m-%d").date()
+            new_week = Week_tuple(new_day.isocalendar().year, new_day.isocalendar().week)
+
+        weeks_checked = self._convert_week()
+
+        if new_week not in weeks_checked:
+            self.dates_checked.append(new_day)
+
     def streak(self):
         current_streak = 0
         weeks_checked = self._convert_week()
@@ -269,7 +254,6 @@ class Weekly(Habit):
 
         return current_streak
 
-    # DONE, UPDATED
     def longest_streak(self):
         max_streak = 0
         weeks_checked = self._convert_week()
@@ -288,16 +272,16 @@ class Weekly(Habit):
 
         return max_streak
 
-    # DONE, UPDATED
-    def check_streak(self, date="today"):
-        if date == "today":
-            new_day = datetime.today().date()
-            new_week = Week_tuple(new_day.isocalendar().year, new_day.isocalendar().week)
-        else:
-            new_day = datetime.strptime(date, "%Y-%m-%d").date()
-            new_week = Week_tuple(new_day.isocalendar().year, new_day.isocalendar().week)
+    def _convert_week(self):
+        iso_list = [date.isocalendar() for date in self.dates_checked]
 
-        weeks_checked = self._convert_week()
+        return [Week_tuple(iso.year, iso.week) for iso in iso_list]
 
-        if new_week not in weeks_checked:
-            self.dates_checked.append(new_day)
+    @staticmethod
+    def _previous_week(date: Week_tuple):
+        monday = datetime.fromisocalendar(date.year, date.week, 1)
+
+        previous_monday = (monday - timedelta(weeks=1)).isocalendar()
+
+        return Week_tuple(previous_monday.year, previous_monday.week)
+
