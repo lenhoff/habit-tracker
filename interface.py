@@ -1,7 +1,7 @@
 import questionary
 import functions as func
-from hclasses import Habit
-from validator import user_name_validator, habit_name_validator, habit_description_validator, date_validator
+from habit_classes import Habit
+from validators import user_name_validator, habit_name_validator, habit_description_validator, date_validator
 
 
 habit_dictionary = Habit.Instances

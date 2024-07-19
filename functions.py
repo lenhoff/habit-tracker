@@ -1,5 +1,5 @@
 import os
-from hclasses import Habit, Daily, Weekly
+from habit_classes import Habit, Daily, Weekly
 
 
 def username_exists(username: str) -> bool:
@@ -89,8 +89,8 @@ def habit_info(habit: Habit) -> str:
         activity = "inactive"
 
     info = (f"\n" +
-            f"Name: '{habit.name}', Description: '{habit.description}'\n" +
-            f"Type: {habit.period}, Date of creation: {habit.date_created}\n" +
+            f"Name: '{habit._name}', Description: '{habit._description}'\n" +
+            f"Type: {habit._period}, Date of creation: {habit._date_created}\n" +
             f"Streak: {habit.streak()}, Longest streak: {habit.longest_streak()}\n" +
             f"This habit is currently {activity}.\n")
 
@@ -110,11 +110,11 @@ def list_habits(habit_dict: dict, period: str = None) -> list:
     """
     if not type(habit_dict) is dict:
         raise ValueError("habit_dict should be of type: dict --- ideally Habit.Instances!")
-    if not type(period) is str:
+    if type(period) is not str and period is not None:
         raise ValueError("period should be of type: str --- ideally 'Daily'/'Weekly'")
 
     if period:
-        return [habit for habit in habit_dict if habit_dict[habit].period == period]
+        return [habit for habit in habit_dict if habit_dict[habit]._period == period]
     else:
         return [habit for habit in habit_dict]
 

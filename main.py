@@ -1,5 +1,5 @@
 from interface import main_menu, user_login
-from hclasses import Habit
+from habit_classes import Habit
 
 
 # start

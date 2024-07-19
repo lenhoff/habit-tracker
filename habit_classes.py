@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import sqlite3
 from datetime import datetime, timedelta
-from week_tuple_class import Week_tuple
+from week_tuple import Week_tuple
 
 
 class Habit(ABC):
@@ -58,16 +58,16 @@ class Habit(ABC):
                     Daily(habit["name"], habit["description"])
                 elif habit["period"] == "Weekly":
                     Weekly(habit["name"], habit["description"])
-                Habit.Instances[habit["name"]].id = habit["id"]
-                Habit.Instances[habit["name"]].date_created = habit["date_created"]
+                Habit.Instances[habit["name"]]._id = habit["id"]
+                Habit.Instances[habit["name"]]._date_created = habit["date_created"]
 
             # load tracking data for each habit
             for habit in Habit.Instances.values():
-                cursor.execute("SELECT * FROM tracking WHERE habit_id=?", (habit.id,))
+                cursor.execute("SELECT * FROM tracking WHERE habit_id=?", (habit._id,))
                 dates = cursor.fetchall()
 
                 for date in dates:
-                    habit.dates_checked.append(datetime.strptime(date["date_checked"], "%Y-%m-%d").date())
+                    habit._dates_checked.append(datetime.strptime(date["date_checked"], "%Y-%m-%d").date())
 
     @classmethod
     def change_db(cls, username: str):
@@ -96,13 +96,13 @@ class Habit(ABC):
         if not type(name) is str or not type(description) is str:
             raise ValueError("name and description must be of type: str")
 
-        self.name = name
-        self.description = description
-        self.date_created = None
-        self.dates_checked = []
-        self.id = None
-        self.period = "None"
-        Habit.Instances.update({self.name: self})
+        self._name = name
+        self._description = description
+        self._date_created = None
+        self._dates_checked = []
+        self._id = None
+        self._period = "None"
+        Habit.Instances.update({self._name: self})
         self._initialize_db()
         self._initialize_date_created()
 
@@ -135,8 +135,8 @@ class Habit(ABC):
         """
         Changes 'Habit.date_created' to current date.
         """
-        if self.date_created is None:
-            self.date_created = str(datetime.today().date())
+        if self._date_created is None:
+            self._date_created = str(datetime.today().date())
 
     def update_name(self, new_name: str):
         """
@@ -148,11 +148,11 @@ class Habit(ABC):
         if not type(new_name) is str:
             raise ValueError("new_name must be of type: str")
 
-        old_name = self.name
-        self.name = new_name
+        old_name = self._name
+        self._name = new_name
 
         Habit.Instances.pop(old_name)
-        Habit.Instances.update({self.name: self})
+        Habit.Instances.update({self._name: self})
 
     def update_description(self, new_description: str):
         """
@@ -164,7 +164,7 @@ class Habit(ABC):
         if not type(new_description) is str:
             raise ValueError("new_description must be of type: str")
 
-        self.description = new_description
+        self._description = new_description
 
     def delete(self):
         """
@@ -172,16 +172,16 @@ class Habit(ABC):
         'habits' and 'tracking' (based on 'Habit.id').
         Then, instance is removed 'Habit.Instances'.
         """
-        if self.id:
+        if self._id:
             with sqlite3.connect(Habit._DB_NAME) as conn:
                 cursor = conn.cursor()
 
-                cursor.execute("DELETE FROM habit WHERE id=?", (self.id,))
-                cursor.execute("DELETE FROM tracking WHERE habit_id=?", (self.id,))
+                cursor.execute("DELETE FROM habit WHERE id=?", (self._id,))
+                cursor.execute("DELETE FROM tracking WHERE habit_id=?", (self._id,))
 
                 conn.commit()
 
-        Habit.Instances.pop(self.name)
+        Habit.Instances.pop(self._name)
 
     def save(self):
         """
@@ -198,36 +198,36 @@ class Habit(ABC):
             cursor = conn.cursor()
 
             # save habit meta data
-            if self.id:
+            if self._id:
                 cursor.execute("""
                     UPDATE habit SET name=?, description=? WHERE id=?
-                    """, (self.name, self.description, self.id))
+                    """, (self._name, self._description, self._id))
             else:
                 cursor.execute("""
                     INSERT INTO habit (name, description, period, date_created) VALUES (?,?,?,?)
-                    """, (self.name, self.description, self.period, self.date_created))
-                self.id = cursor.lastrowid
+                    """, (self._name, self._description, self._period, self._date_created))
+                self._id = cursor.lastrowid
 
             # save checked dates
             cursor.execute("""
                 SELECT * FROM tracking WHERE habit_id = ?
-                """, (self.id,))
+                """, (self._id,))
             existing_dates = {row["date_checked"] for row in cursor.fetchall()}
 
-            for date in self.dates_checked:
+            for date in self._dates_checked:
                 if str(date) not in existing_dates:
                     cursor.execute("""
                         INSERT INTO tracking (habit_id, date_checked) VALUES (?, ?)
-                        """, (self.id, date))
+                        """, (self._id, date))
 
         conn.commit()
 
     def __str__(self):
-        return (f"Habit ID: {self.id}\n" +
-                f"Habit name: {self.name}\n" +
-                f"Habit description: {self.description}\n" +
-                f"Created: {self.date_created}\n" +
-                f"Habit periodicity: {self.period}\n" +
+        return (f"Habit ID: {self._id}\n" +
+                f"Habit name: {self._name}\n" +
+                f"Habit description: {self._description}\n" +
+                f"Created: {self._date_created}\n" +
+                f"Habit periodicity: {self._period}\n" +
                 f"Is active: {self.is_active()}\n" +
                 f"Current streak: {self.streak()}\n" +
                 f"Longest streak: {self.longest_streak()}\n")
@@ -299,7 +299,7 @@ class Daily(Habit):
             description (str): Enter a habit description.
         """
         super().__init__(name, description)
-        self.period = "Daily"
+        self._period = "Daily"
 
     def is_active(self) -> bool:
         """
@@ -310,8 +310,8 @@ class Daily(Habit):
         """
         today = datetime.today().date()
 
-        if len(self.dates_checked) > 0:
-            if today in self.dates_checked:
+        if len(self._dates_checked) > 0:
+            if today in self._dates_checked:
                 return True
             else:
                 return False
@@ -332,8 +332,8 @@ class Daily(Habit):
         else:
             new_date = datetime.strptime(date, "%Y-%m-%d").date()
 
-        if new_date not in self.dates_checked:
-            self.dates_checked.append(new_date)
+        if new_date not in self._dates_checked:
+            self._dates_checked.append(new_date)
 
     def streak(self) -> int:
         """
@@ -345,7 +345,7 @@ class Daily(Habit):
         current_streak = 0
         today = datetime.today().date()
 
-        while today in self.dates_checked:
+        while today in self._dates_checked:
             current_streak += 1
             today -= timedelta(days=1)
 
@@ -359,13 +359,13 @@ class Daily(Habit):
             int
         """
         max_streak = 0
-        self.dates_checked.sort(reverse=True)
+        self._dates_checked.sort(reverse=True)
 
-        if len(self.dates_checked) > 0:
+        if len(self._dates_checked) > 0:
             streak_count = 1
             max_streak = 1
-            for date in range(len(self.dates_checked) - 1):
-                if (self.dates_checked[date] - self.dates_checked[date + 1]).days == 1:
+            for date in range(len(self._dates_checked) - 1):
+                if (self._dates_checked[date] - self._dates_checked[date + 1]).days == 1:
                     streak_count += 1
                     if streak_count > max_streak:
                         max_streak = streak_count
@@ -415,7 +415,7 @@ class Weekly(Habit):
             description (str): Enter a habit description.
         """
         super().__init__(name, description)
-        self.period = "Weekly"
+        self._period = "Weekly"
 
     def is_active(self) -> bool:
         """
@@ -455,7 +455,7 @@ class Weekly(Habit):
         weeks_checked = self._convert_week()
 
         if new_week not in weeks_checked:
-            self.dates_checked.append(new_day)
+            self._dates_checked.append(new_day)
 
     def streak(self) -> int:
         """
@@ -505,7 +505,7 @@ class Weekly(Habit):
         Returns:
             list of 'Week_tuple' objects
         """
-        iso_list = [date.isocalendar() for date in self.dates_checked]
+        iso_list = [date.isocalendar() for date in self._dates_checked]
 
         return [Week_tuple(iso.year, iso.week) for iso in iso_list]
 

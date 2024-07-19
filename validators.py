@@ -1,5 +1,5 @@
 from functions import list_habits
-from hclasses import Habit
+from habit_classes import Habit
 from datetime import datetime
 
 
