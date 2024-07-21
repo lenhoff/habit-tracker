@@ -17,8 +17,8 @@ def user_name_validator(name: str):
 
 
 def habit_name_validator(habit_name: str):
-    if len(habit_name) == 0:
-        return "Habit name must be at least one character long."
+    if len(habit_name) == 0 or len(habit_name) > 50:
+        return "Habit name must be between 1 and 50 characters long."
     elif habit_name in list_habits(Habit.Instances):
         return "Habit name already taken."
     else:
@@ -26,10 +26,8 @@ def habit_name_validator(habit_name: str):
 
 
 def habit_description_validator(description: str):
-    if len(description) == 0:
-        return "Description must be at least one character long."
-    if len(description) > 100:
-        return "Description must be 100 characters or shorter."
+    if len(description) == 0 or len(description) > 100:
+        return "Description must be between 1 and 100 characters long."
     else:
         return True
 
