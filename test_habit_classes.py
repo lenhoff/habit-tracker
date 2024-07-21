@@ -36,7 +36,6 @@ def temporary_database():
                         )   
                     """)
     conn.commit()
-    conn.close()
 
     yield
 
@@ -112,6 +111,11 @@ def predefined_habits():
     Habit._DB_NAME = "_test.db"
 
 
+@pytest.fixture
+def today():
+    return str(datetime.today().date())
+
+
 class TestHabit:
 
     def test_change_database(self, predefined_habits):
@@ -171,15 +175,11 @@ class TestDaily:
 
     @freeze_time("2015-01-18")
     def test_streak(self, predefined_habits):
-        assert Habit.Instances["Brush"].streak() == 13
-        assert Habit.Instances["Duolingo"].streak() == 13
-        assert Habit.Instances["Exercise"].streak() == 0
+        assert [hab.streak() for hab in Habit.Instances.values() if hab._period == "Daily"] == [13, 13, 0]
 
     @freeze_time("2015-01-18")
     def test_longest_streak(self, predefined_habits):
-        assert Habit.Instances["Brush"].longest_streak() == 14
-        assert Habit.Instances["Duolingo"].longest_streak() == 14
-        assert Habit.Instances["Exercise"].longest_streak() == 20
+        assert [hab.longest_streak() for hab in Habit.Instances.values() if hab._period == "Daily"] == [14, 14, 20]
 
 
 class TestWeekly:
@@ -231,18 +231,17 @@ class TestWeekly:
 
     @freeze_time("2015-01-18")
     def test_streak(self, predefined_habits):
-        assert Habit.Instances["Plants"].streak() == 4
-        assert Habit.Instances["Clean"].streak() == 1
+        assert [habit.streak() for habit in Habit.Instances.values() if habit._period == "Weekly"] == [4, 1]
 
     @freeze_time("2015-01-18")
     def test_longest_streak(self, predefined_habits):
-        assert Habit.Instances["Plants"].longest_streak() == 4
-        assert Habit.Instances["Clean"].longest_streak() == 2
+        assert [habit.longest_streak() for habit in Habit.Instances.values() if habit._period == "Weekly"] == [4, 2]
 
 
 class TestDatabase:
 
-    def test_save_and_load_habit(self, temporary_database, predefined_habits):
+    @freeze_time("2015-01-18")
+    def test_save_and_load_habit(self, temporary_database, predefined_habits, today):
         # create habit and save to database
         Habit.Instances["Brush"].save()
 
@@ -250,19 +249,20 @@ class TestDatabase:
         Habit.Instances = {}
         assert len(Habit.Instances) == 0
 
-        # load habit from database
+        # load habit from database and check proper re-initialization
         Habit.load()
         assert len(Habit.Instances) == 1
         assert Habit.Instances["Brush"]._name == "Brush"
         assert Habit.Instances["Brush"]._description == "Brush your teeth at least once a day."
-        assert Habit.Instances["Brush"]._date_created == str(datetime.today().date())
+        assert Habit.Instances["Brush"]._date_created == today
         assert Habit.Instances["Brush"]._period == "Daily"
         assert Habit.Instances["Brush"]._id == 1
         assert len(Habit.Instances["Brush"]._dates_checked) == 27
         assert Habit.Instances["Brush"].longest_streak() == 14
-        assert Habit.Instances["Brush"].streak() == 0
-        assert Habit.Instances["Brush"].is_active() is False
+        assert Habit.Instances["Brush"].streak() == 13
+        assert Habit.Instances["Brush"].is_active() is True
 
+    @freeze_time("2015-01-18")
     def test_save_and_load_multiple(self, temporary_database, predefined_habits):
         for habit in Habit.Instances.values():
             habit.save()
@@ -271,15 +271,12 @@ class TestDatabase:
         Habit.Instances = {}
         assert len(Habit.Instances) == 0
 
-        # load habits from database
+        # load habits from database and check correct IDs and tracking data retrieval
         Habit.load()
-        assert len(Habit.Instances) == 5
-        assert Habit.Instances["Brush"]._id == 1
-        assert Habit.Instances["Clean"]._id == 5
-        assert Habit.Instances["Brush"].streak() == 0
-        assert Habit.Instances["Brush"].longest_streak() == 14
-        assert Habit.Instances["Clean"].streak() == 0
-        assert Habit.Instances["Clean"].longest_streak() == 2
+        assert [habit for habit in Habit.Instances] == ["Brush", "Duolingo", "Exercise", "Plants", "Clean"]
+        assert [habit._id for habit in Habit.Instances.values()] == [1, 2, 3, 4, 5]
+        assert [habit.streak() for habit in Habit.Instances.values()] == [13, 13, 0, 4, 1]
+        assert [habit.longest_streak() for habit in Habit.Instances.values()] == [14, 14, 20, 4, 2]
 
     def test_update_database(self, temporary_database, predefined_habits):
         # create habit and save
@@ -295,7 +292,7 @@ class TestDatabase:
         Habit.Instances["new_name"].update_description("new description")
         Habit.Instances["new_name"].checkoff_streak()
         Habit.Instances["new_name"].save()
-        # keep habit id
+        # keep habit id for comparison
         old_id = Habit.Instances["new_name"]._id
 
         # delete habit by clearing class dictionary
@@ -311,13 +308,27 @@ class TestDatabase:
         assert Habit.Instances["new_name"].is_active() is True
 
     def test_delete(self, temporary_database, predefined_habits):
-        assert len(Habit.Instances) == 5
         for habit in Habit.Instances.values():
             habit.save()
 
         habit_names = [name for name in Habit.Instances.keys()]
-
         for name in habit_names:
             Habit.Instances[name].delete()
 
+        # check if Habit.Instances are empty
         assert len(Habit.Instances) == 0
+
+        # check if database tables are empty
+        with sqlite3.connect(Habit._DB_NAME) as conn:
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+
+            cursor.execute("SELECT * FROM habit")
+            existing_habits = cursor.fetchall()
+
+            cursor.execute("SELECT * FROM tracking")
+            existing_tracking_data = cursor.fetchall()
+
+        assert len(existing_habits) == 0
+        assert len(existing_tracking_data) == 0
+

@@ -32,7 +32,7 @@ def create_predefined_habits():
 
 def create_habit(period: str, name: str, description: str):
     """
-    Function to create a habit.
+    Function to create a habit and save it to the database.
 
     Args:
         period (str): Desired periodicity of habit ('Daily'/'Weekly')
@@ -40,7 +40,7 @@ def create_habit(period: str, name: str, description: str):
         description (str): Description of habit
 
     """
-    if not period == "Daily" or not period == "Weekly":
+    if not period == "Daily" and not period == "Weekly":
         raise ValueError("period must be 'Daily' or 'Weekly'")
     if not type(name) is str or not type(description) is str:
         raise ValueError("name and description must be of type: str")
