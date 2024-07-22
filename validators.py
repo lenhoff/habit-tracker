@@ -10,8 +10,6 @@ def user_name_validator(name: str):
         return "Username cannot exceed 20 characters."
     elif not name.isalnum():
         return "Username cannot contain special characters."
-    elif name == "_test":
-        return f"Username {name} is reserved for test purposes."
     else:
         return True
 
