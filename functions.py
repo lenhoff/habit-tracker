@@ -16,7 +16,7 @@ def username_exists(username: str) -> bool:
     return os.path.exists(database)
 
 
-def create_predefined_habits():
+def create_predefined_habits() -> None:
     """
     Function to create five pre-defined habits and save them to user database.
     """

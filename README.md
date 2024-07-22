@@ -10,11 +10,13 @@ Lennart Hoffmann
 ---
 
 ## Installation
-To use the program clone the GitHub repository and run the following code:
+To run the program clone the GitHub repository and run the following code:
 ```console
-pip -r install requirements.txt
+pip install -r requirements.txt
 python main.py
 ```
+
+Note: This app was only tested on Windows using Python 3.11.7.
 
 ---
 
@@ -85,7 +87,7 @@ Note: Only date of the following format will be accepted: YYYY-MM-DD (Y: year, M
 * Choose this option to list all your inactive habits
 
 #### 3.3. Show current streak
-Choose this option to list the streaks of your habits. Choose 'Single' if you want to see the streak
+* Choose this option to list the streaks of your habits. Choose 'Single' if you want to see the streak
 of a single habit or 'All' to look at the streaks of all your habits.
 
 #### 3.4. Show longest streak

@@ -37,7 +37,7 @@ class Habit(ABC):
     _DB_NAME = "_test.db"
 
     @classmethod
-    def load(cls):
+    def load(cls) -> None:
         """
         Class method to load all previously saved Habit instances.
 
@@ -45,6 +45,7 @@ class Habit(ABC):
         table. Then, restores id and date_created.
         Lastly, loads tracking data based on instance id from 'tracking' table.
         """
+        # connect to user database
         with sqlite3.connect(cls._DB_NAME) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -106,7 +107,7 @@ class Habit(ABC):
         self._initialize_db()
         self._initialize_date_created()
 
-    def _initialize_db(self):
+    def _initialize_db(self) -> None:
         """
         Connects to 'Habit._DB_NAME' and creates 'habit' and 'tracking' table if they do not exist already.
         """
@@ -148,9 +149,11 @@ class Habit(ABC):
         if not type(new_name) is str:
             raise ValueError("new_name must be of type: str")
 
+        # rename habit
         old_name = self._name
         self._name = new_name
 
+        # update key in Habit.Instances
         Habit.Instances.pop(old_name)
         Habit.Instances.update({self._name: self})
 
@@ -166,12 +169,13 @@ class Habit(ABC):
 
         self._description = new_description
 
-    def delete(self):
+    def delete(self) -> None:
         """
         Connects to 'Habit._DB_NAME' and removes the metadata and tracked dates of a Habit instance from tables
         'habits' and 'tracking' (based on 'Habit.id').
         Then, instance is removed 'Habit.Instances'.
         """
+        # remove habit from database (by id)
         if self._id:
             with sqlite3.connect(Habit._DB_NAME) as conn:
                 cursor = conn.cursor()
@@ -181,9 +185,10 @@ class Habit(ABC):
 
                 conn.commit()
 
+        # remove habit from Habit.Instances
         Habit.Instances.pop(self._name)
 
-    def save(self):
+    def save(self) -> None:
         """
         Method to save instance data to user database.
 
@@ -193,6 +198,7 @@ class Habit(ABC):
 
         Dates associated with the Habit instance will be saved in 'tracking' table.
         """
+        # if habit exists: update habit database (name, description), else: insert into habit database and add id
         with sqlite3.connect(Habit._DB_NAME) as conn:
             conn.row_factory = sqlite3.Row
             cursor = conn.cursor()
@@ -208,7 +214,7 @@ class Habit(ABC):
                     """, (self._name, self._description, self._period, self._date_created))
                 self._id = cursor.lastrowid
 
-            # save checked dates
+            # save tracked dates if they do not exist already
             cursor.execute("""
                 SELECT * FROM tracking WHERE habit_id = ?
                 """, (self._id,))
@@ -327,6 +333,7 @@ class Daily(Habit):
         Args:
             date (str): Date to enter (in format: YYYY-MM-DD)
         """
+        # add current or specified date to _dates_checked if not already existing
         if date == "today":
             new_date = datetime.today().date()
         else:
@@ -359,6 +366,7 @@ class Daily(Habit):
             int
         """
         max_streak = 0
+        # sort values
         self._dates_checked.sort(reverse=True)
 
         if len(self._dates_checked) > 0:
@@ -426,6 +434,7 @@ class Weekly(Habit):
              bool
         """
         active = False
+        # convert today and dates_checked to Week_tuple
         this_week = Week_tuple(datetime.today().isocalendar().year, datetime.today().isocalendar().week)
         weeks_checked = self._convert_week()
 
@@ -465,6 +474,7 @@ class Weekly(Habit):
             int
         """
         current_streak = 0
+        # convert current week and dates_checked to Week_tuple
         weeks_checked = self._convert_week()
         this_week = Week_tuple(datetime.today().isocalendar().year, datetime.today().isocalendar().week)
 
@@ -482,6 +492,7 @@ class Weekly(Habit):
             int
         """
         max_streak = 0
+        # convert dates to Week_tuple and sort
         weeks_checked = self._convert_week()
         weeks_checked.sort(reverse=True)
 
@@ -520,8 +531,8 @@ class Weekly(Habit):
         Returns:
             Week_tuple
         """
+        # compute previous week based on fixed week day (here: monday) - difference exactly 1 week
         monday = datetime.fromisocalendar(date.year, date.week, 1)
-
         previous_monday = (monday - timedelta(weeks=1)).isocalendar()
 
         return Week_tuple(previous_monday.year, previous_monday.week)

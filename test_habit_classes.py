@@ -7,7 +7,7 @@ import sqlite3
 
 
 @pytest.fixture
-def temporary_database():
+def temporary_database() -> None:
     # setup: create test database
     Habit.Instances = {}
     Habit.change_db("_test")
@@ -45,7 +45,7 @@ def temporary_database():
 
 
 @pytest.fixture
-def predefined_habits():
+def predefined_habits() -> list[Habit]:
     # setup: create five predefined habits
     # habit 1 - Brush teeth, Daily
     example_habit_1 = Daily("Brush", "Brush your teeth at least once a day.")
@@ -112,7 +112,7 @@ def predefined_habits():
 
 
 @pytest.fixture
-def today():
+def today() -> str:
     return str(datetime.today().date())
 
 
@@ -143,6 +143,7 @@ class TestHabit:
         habit.update_name("Test")
         assert habit._name == "Test"
         assert "Test" in Habit.Instances
+        assert "Brush" not in Habit.Instances
 
     def test_update_description(self, predefined_habits):
         Habit.Instances["Brush"].update_description("Description")

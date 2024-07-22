@@ -7,7 +7,7 @@ from freezegun import freeze_time
 
 
 @pytest.fixture
-def temporary_database():
+def temporary_database() -> None:
     # setup: create test database
     Habit.Instances = {}
     Habit.change_db("_test")
@@ -45,7 +45,7 @@ def temporary_database():
 
 
 @pytest.fixture
-def predefined_habits():
+def predefined_habits() -> list[Habit]:
     # setup: create five predefined habits
     # habit 1 - Brush teeth, Daily
     example_habit_1 = Daily("Brush", "Brush your teeth at least once a day.")
@@ -130,6 +130,7 @@ def test_username_exists():
 
 
 def test_create_habit(temporary_database):
+    # create Daily and Weekly habit
     Habit.Instances = {}
     d_name = "Test daily"
     d_description = "Test description daily"
@@ -153,10 +154,9 @@ def test_create_habit(temporary_database):
         existing_habits = cursor.fetchall()
 
     assert len(existing_habits) == 2
-    assert existing_habits[0]["name"] == d_name
-    assert existing_habits[0]["description"] == d_description
-    assert existing_habits[1]["name"] == w_name
-    assert existing_habits[1]["description"] == w_description
+    assert [habit["name"] for habit in existing_habits] == [d_name, w_name]
+    assert [habit["description"] for habit in existing_habits] == [d_description, w_description]
+    assert [habit["id"] for habit in existing_habits] == [1, 2]
 
 
 def test_list_habits(predefined_habits):
@@ -214,7 +214,6 @@ def test_habit_streak_string(predefined_habits):
     streak_string = func.habit_streak_string(streak_dictionary)
     longest_streak_string = func.habit_streak_string(longest_streak_dictionary)
 
-    # "Habit: 'habit' - Streak: 'streak'"
     assert streak_string == ("Habit: Brush - Streak: 13\n" +
                              "Habit: Duolingo - Streak: 13\n" +
                              "Habit: Exercise - Streak: 0\n" +
